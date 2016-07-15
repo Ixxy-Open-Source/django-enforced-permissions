@@ -1,0 +1,1 @@
+default_app_config = 'enforced_permissions.apps.EnforcedPermissionsAppConfig'
