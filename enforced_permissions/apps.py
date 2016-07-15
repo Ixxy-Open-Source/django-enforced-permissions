@@ -14,7 +14,7 @@ class EnforcedPermissionsAppConfig(AppConfig):
     name = 'enforced_permissions'
     verbose_name = 'Enforced Permissions'
 
-    def ready(self):  # TODO rename this to 'ready' when it's fixed
+    def ready(self):
         super(EnforcedPermissionsAppConfig, self).ready()
 
         errors = []
