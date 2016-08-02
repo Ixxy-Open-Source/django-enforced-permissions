@@ -28,7 +28,7 @@ class EnforcedPermissionsAppConfig(AppConfig):
 
         groups_count = 0
         try:
-            groups_count = Group.objects.all()
+            groups_count = Group.objects.all().count()
         except (OperationalError, ProgrammingError):
             print "The database/table isn't created yet. "
             return
