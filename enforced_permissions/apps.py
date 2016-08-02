@@ -6,6 +6,7 @@ from django.db.models.loading import get_models
 from django.contrib.auth.models import Group, Permission
 from django.contrib.auth import get_permission_codename
 from django.contrib.contenttypes.models import ContentType
+from django.db.utils import OperationalError, ProgrammingError
 
 import warnings
 
@@ -24,6 +25,16 @@ class EnforcedPermissionsAppConfig(AppConfig):
         exclude = settings.ENFORCED_PERMISSIONS['exclude']
         perms = settings.ENFORCED_PERMISSIONS['permissions']
         group_objects = {}
+
+        groups_count = 0
+        try:
+            groups_count = Group.objects.all()
+        except (OperationalError, ProgrammingError):
+            print "The database/table isn't created yet. "
+            return
+        if not groups_count:
+            return
+
         for group, group_name in groups.items():
             try:
                 group_objects.update({
@@ -58,7 +69,7 @@ class EnforcedPermissionsAppConfig(AppConfig):
             else:
                 errors.append("No permissions defined for {} in settings.ENFORCED_PERMISSIONS".format(label))
                 continue
-            
+
             for group in groups:
                 group_obj = group_objects.get(group, None)
                 if group in model_perms:
