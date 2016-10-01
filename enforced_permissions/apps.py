@@ -1,14 +1,12 @@
-from django.apps import AppConfig
+from django.apps import apps, AppConfig
 from django.conf import settings
 from django.db.models import Model
 from django.db.models import signals
-from django.db.models.loading import get_models
 from django.contrib.auth.models import Group, Permission
 from django.contrib.auth import get_permission_codename
 from django.contrib.contenttypes.models import ContentType
 from django.db.utils import OperationalError, ProgrammingError
 
-import warnings
 
 class EnforcedPermissionsAppConfig(AppConfig):
 
@@ -51,7 +49,7 @@ class EnforcedPermissionsAppConfig(AppConfig):
             return l in exclude
 
 
-        for model in get_models():
+        for model in apps.get_models():
             meta = model._meta
 
             if not issubclass(model, Model):
@@ -102,12 +100,19 @@ class EnforcedPermissionsAppConfig(AppConfig):
                                 sender=model,
                                 app_config=model._meta.app_config,
                             )
-                            perm = Permission.objects.get(codename=codename, content_type=content_type)
+                            perm = Permission.objects.get(
+                                codename=codename,
+                                content_type=content_type,
+                            )
                         if should_has_perm:
-                            print 'Automatically adding permission {} for {}'.format(label, group)
+                            print 'Adding: permission {} for {}'.format(label, group)
                             group_obj.permissions.add(perm)
                         else:
-                            print 'Mismatch: group {} should not have permission {} for {}. Removing...'.format(group, codename, label)
+                            print 'Removing: group {} should not have permission {} for {}.'.format(
+                                group,
+                                codename,
+                                label,
+                            )
                             group_obj.permissions.remove(perm)
 
         if errors:
