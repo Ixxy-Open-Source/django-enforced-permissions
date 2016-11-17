@@ -111,10 +111,11 @@ def do_enforced_permissions():
                 if has_perm != should_has_perm:
                     try:
                         perm = Permission.objects.get(codename=codename, content_type=content_type)
-                    except:
+                    except Permission.DoesNotExist:
+                        app_config = model._meta.app_config
                         signals.post_migrate.send(
-                            sender=model,
-                            app_config=model._meta.app_config,
+                            sender=app_config,
+                            app_config=app_config,
                         )
                         perm = Permission.objects.get(
                             codename=codename,
