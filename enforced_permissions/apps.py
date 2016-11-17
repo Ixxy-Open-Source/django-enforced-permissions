@@ -38,26 +38,25 @@ def do_enforced_permissions():
     perms = settings.ENFORCED_PERMISSIONS['permissions']
     group_objects = {}
 
-    groups_count = 0
     try:
         groups_count = Group.objects.all().count()
     except (OperationalError, ProgrammingError):
         print "The database/table isn't created yet. "
         return
     if not groups_count:
-        return
-
+        raise Exception('No groups exist')
+    
+    group_errors = []
     for group, group_name in groups.items():
         try:
             group_objects.update({
                 group: Group.objects.get(name=group_name)
             })
         except Group.DoesNotExist:
-            group_objects.update({
-                group: None
-            })
-            print 'Cannot find group {}'.format(group)
-
+            group_errors += group
+        if len(group_errors):
+            raise Exception('Groups do not exist: {}'.format(','.join(group_errors)))
+    
     def is_excluded(l):
         # TODO Allow wildcards
         return l in exclude
@@ -82,13 +81,15 @@ def do_enforced_permissions():
             continue
 
         for group in groups:
-            group_obj = group_objects.get(group, None)
+            group_obj = group_objects.get(group)
             if group in model_perms:
                 model_group_perms = model_perms[group]
             elif '*' in model_perms:
                 model_group_perms = model_perms['*']
             else:
-                errors.append("No permissions defined for group {} and model {} in settings.ENFORCED_PERMISSIONS".format(group, label))
+                errors.append("No permissions defined for group {} and model {} "
+                              "in settings.ENFORCED_PERMISSIONS".format(group, label))
+                continue
             
             # Should probably accommodate duck typing somehow but this is simpler
             if isinstance(model_group_perms, dict):
