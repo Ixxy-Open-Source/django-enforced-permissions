@@ -82,7 +82,9 @@ def do_enforced_permissions():
 
         for group in groups:
             group_obj = group_objects.get(group)
-            if group in model_perms:
+            if model_perms is False:
+                model_group_perms = False
+            elif group in model_perms:
                 model_group_perms = model_perms[group]
             elif '*' in model_perms:
                 model_group_perms = model_perms['*']
