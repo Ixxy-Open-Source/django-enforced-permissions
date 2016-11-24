@@ -31,13 +31,12 @@ class EnforcedPermissionsAppConfig(AppConfig):
 def do_enforced_permissions():
     
     errors = []
-    mismatch = []
-
+    
     groups = settings.ENFORCED_PERMISSIONS['groups']
-    exclude = settings.ENFORCED_PERMISSIONS['exclude']
+    exclude = settings.ENFORCED_PERMISSIONS.get('exclude', [])
     perms = settings.ENFORCED_PERMISSIONS['permissions']
     group_objects = {}
-
+    
     try:
         groups_count = Group.objects.all().count()
     except (OperationalError, ProgrammingError):
