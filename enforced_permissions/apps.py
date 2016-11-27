@@ -1,12 +1,14 @@
 import logging
 from django.apps import apps, AppConfig
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Model
 from django.db.models import signals
 from django.contrib.auth.models import Group, Permission
 from django.contrib.auth import get_permission_codename
 from django.contrib.contenttypes.models import ContentType
 from django.db.utils import OperationalError, ProgrammingError
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -43,23 +45,46 @@ def do_enforced_permissions():
         print "The database/table isn't created yet. "
         return
     if not groups_count:
-        raise Exception('No groups exist')
-    
+        print 'No groups exist. Please create the following: {} and assign users. ' \
+              'Use "--ignore_perms" to ignore and continue'.format(','.join(groups.values()))
+        if '--ignore_perms' in sys.argv:
+            return
+        else:
+            exit()
+    sys.argv.remove('--ignore_perms')
     group_errors = []
+    
     for group, group_name in groups.items():
         try:
             group_objects.update({
                 group: Group.objects.get(name=group_name)
             })
         except Group.DoesNotExist:
-            group_errors += group
+            group_errors.append(group)
+        
         if len(group_errors):
-            raise Exception('Groups do not exist: {}'.format(','.join(group_errors)))
+            raise ImproperlyConfigured('The following groups do not exist: {}'.format(','.join(group_errors)))
     
     def is_excluded(l):
         # TODO Allow wildcards
         return l in exclude
 
+    if len(perms) != len(list(set(perms))):
+        raise ImproperlyConfigured("Duplicate entries in ENFORCED_PERMISSIONS")
+
+    missing_apps = []
+    all_app_names = list(set([x.split('.')[0] for x in perms.keys()]))
+    for app_name in all_app_names:
+        try:
+            apps.get_app(app_name)
+        except ImproperlyConfigured:
+            missing_apps.append(app_name)
+    if missing_apps:
+        raise ImproperlyConfigured("ENFORCED_PERMISSIONS refers to non-existent app: {}".format(','.join(missing_apps)))
+    
+    all_models = [x for x in perms if not x.endswith('.*')]
+    # TODO check for models that don't exist
+    
     for model in apps.get_models():
         meta = model._meta
 
@@ -76,13 +101,15 @@ def do_enforced_permissions():
         elif label_wildcard in perms:
             model_perms = perms[label_wildcard]
         else:
-            errors.append("No permissions defined for {} in settings.ENFORCED_PERMISSIONS".format(label))
+            errors.append(
+                "No permissions defined for {} in settings.ENFORCED_PERMISSIONS".format(label)
+            )
             continue
 
         for group in groups:
             group_obj = group_objects.get(group)
-            if model_perms is False:
-                model_group_perms = False
+            if type(model_perms) == bool:
+                model_group_perms = model_perms
             elif group in model_perms:
                 model_group_perms = model_perms[group]
             elif '*' in model_perms:
@@ -132,4 +159,4 @@ def do_enforced_permissions():
                         group_obj.permissions.remove(perm)
 
     if errors:
-        raise Exception(errors)  # TODO - prettier display
+        raise ImproperlyConfigured('\n'.join(errors))
