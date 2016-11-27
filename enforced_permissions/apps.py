@@ -51,7 +51,11 @@ def do_enforced_permissions():
             return
         else:
             exit()
-    sys.argv.remove('--ignore_perms')
+    try:
+        sys.argv.remove('--ignore_perms')
+    except ValueError:
+        pass
+    
     group_errors = []
     
     for group, group_name in groups.items():
