@@ -46,15 +46,11 @@ def do_enforced_permissions():
         return
     if not groups_count:
         print 'No groups exist. Please create the following: {} and assign users. ' \
-              'Use "--ignore_perms" to ignore and continue'.format(','.join(groups.values()))
-        if '--ignore_perms' in sys.argv:
+              'Temporarily use "IGNORE_PERMS = True" to ignore if you need to access the shell'.format(','.join(groups.values()))
+        if getattr(settings, 'IGNORE_PERMS', False):
             return
         else:
             exit()
-    try:
-        sys.argv.remove('--ignore_perms')
-    except ValueError:
-        pass
     
     group_errors = []
     
