@@ -73,12 +73,12 @@ def do_enforced_permissions():
         raise ImproperlyConfigured("Duplicate entries in ENFORCED_PERMISSIONS")
 
     missing_apps = []
-    all_app_names = list(set([x.split('.')[0] for x in perms.keys()]))
-    for app_name in all_app_names:
+    all_app_labels = list(set([x.split('.')[0] for x in perms.keys()]))
+    for app_label in all_app_labels:
         try:
-            apps.get_app(app_name)
+            apps.get_app_config(app_label).models_module
         except ImproperlyConfigured:
-            missing_apps.append(app_name)
+            missing_apps.append(app_label)
     if missing_apps:
         raise ImproperlyConfigured("ENFORCED_PERMISSIONS refers to non-existent app: {}".format(','.join(missing_apps)))
     
