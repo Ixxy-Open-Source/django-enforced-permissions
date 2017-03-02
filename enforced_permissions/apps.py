@@ -7,6 +7,7 @@ from django.db.models import signals
 from django.contrib.auth.models import Group, Permission
 from django.contrib.auth import get_permission_codename
 from django.contrib.contenttypes.models import ContentType
+from django.db.models.signals import post_migrate
 from django.db.utils import OperationalError, ProgrammingError
 import sys
 
@@ -20,18 +21,10 @@ class EnforcedPermissionsAppConfig(AppConfig):
 
     def ready(self):
         super(EnforcedPermissionsAppConfig, self).ready()
-        try:
-            do_enforced_permissions()
-        except Exception as e:
-            # Fails if the database tables haven't yet been created
-            if not ("doesn't exist" in str(e) or 'no such table:' in str(e)):
-                raise
-            else:
-                logger.warn("Skipping enforced permissions as db table doesn't exist")
+        post_migrate.connect(do_enforced_permissions, sender=self)
 
 
-def do_enforced_permissions():
-    
+def do_enforced_permissions(app_config, **kwargs):
     errors = []
     
     groups = settings.ENFORCED_PERMISSIONS['groups']
