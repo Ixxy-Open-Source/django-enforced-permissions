@@ -32,11 +32,7 @@ def do_enforced_permissions(app_config, **kwargs):
     perms = settings.ENFORCED_PERMISSIONS['permissions']
     group_objects = {}
     
-    try:
-        groups_count = Group.objects.all().count()
-    except (OperationalError, ProgrammingError):
-        print "The database/table isn't created yet. "
-        return
+    groups_count = Group.objects.all().count()
     if not groups_count:
         print 'No groups exist. Please create the following: {} and assign users. ' \
               'Temporarily use "IGNORE_PERMS = True" to ignore if you need to access the shell'.format(','.join(groups.values()))
