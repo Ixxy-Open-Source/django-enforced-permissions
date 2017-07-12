@@ -33,14 +33,16 @@ def do_enforced_permissions(app_config, **kwargs):
     group_objects = {}
     
     groups_count = Group.objects.all().count()
+
     if not groups_count:
-        print 'No groups exist. Please create the following: {} and assign users. ' \
-              'Temporarily use "IGNORE_PERMS = True" to ignore if you need to access the shell'.format(','.join(groups.values()))
         if getattr(settings, 'IGNORE_PERMS', False):
             return
         else:
+            print 'No groups exist. Please create the following: {} and assign users. ' \
+                  'Temporarily use "IGNORE_PERMS = True" to ignore if you need to access the shell'.format(
+                ','.join(groups.values()))
             exit()
-    
+
     group_errors = []
     
     for group, group_name in groups.items():
