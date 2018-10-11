@@ -4,12 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Model
 from django.db.models import signals
-from django.contrib.auth.models import Group, Permission
-from django.contrib.auth import get_permission_codename
-from django.contrib.contenttypes.models import ContentType
 from django.db.models.signals import post_migrate
-from django.db.utils import OperationalError, ProgrammingError
-import sys
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +20,9 @@ class EnforcedPermissionsAppConfig(AppConfig):
 
 
 def do_enforced_permissions(app_config, **kwargs):
+    from django.contrib.auth.models import Group, Permission
+    from django.contrib.auth import get_permission_codename
+    from django.contrib.contenttypes.models import ContentType
     errors = []
     
     groups = settings.ENFORCED_PERMISSIONS['groups']
@@ -38,9 +36,11 @@ def do_enforced_permissions(app_config, **kwargs):
         if getattr(settings, 'IGNORE_PERMS', False):
             return
         else:
-            print 'No groups exist. Please create the following: {} and assign users. ' \
+            print(
+                'No groups exist. Please create the following: {} and assign users. ' \
                   'Temporarily use "IGNORE_PERMS = True" to ignore if you need to access the shell'.format(
                 ','.join(groups.values()))
+            )
             exit()
 
     group_errors = []
@@ -139,14 +139,14 @@ def do_enforced_permissions(app_config, **kwargs):
                             content_type=content_type,
                         )
                     if should_has_perm:
-                        print 'Adding: permission {} for {}'.format(label, group)
+                        print('Adding: permission {} for {}'.format(label, group))
                         group_obj.permissions.add(perm)
                     else:
-                        print 'Removing: group {} should not have permission {} for {}.'.format(
+                        print('Removing: group {} should not have permission {} for {}.'.format(
                             group,
                             codename,
                             label,
-                        )
+                        ))
                         group_obj.permissions.remove(perm)
 
     if errors:
