@@ -134,6 +134,13 @@ def do_enforced_permissions(app_config, **kwargs):
                             sender=app_config,
                             app_config=app_config,
                         )
+                        if model._meta.proxy:
+                            # skip proxy model if permission is still missing after post_migrate signal
+                            if not Permission.objects.filter(
+                                codename=codename,
+                                content_type=content_type,
+                            ).exists():
+                                continue
                         perm = Permission.objects.get(
                             codename=codename,
                             content_type=content_type,
