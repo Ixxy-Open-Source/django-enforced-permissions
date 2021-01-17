@@ -68,7 +68,7 @@ def do_enforced_permissions(app_config, **kwargs):
     for app_label in all_app_labels:
         try:
             apps.get_app_config(app_label).models_module
-        except ImproperlyConfigured:
+        except (ImproperlyConfigured, LookupError):
             missing_apps.append(app_label)
     if missing_apps:
         raise ImproperlyConfigured("ENFORCED_PERMISSIONS refers to non-existent app: {}".format(','.join(missing_apps)))
