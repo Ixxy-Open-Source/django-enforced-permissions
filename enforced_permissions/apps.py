@@ -112,7 +112,7 @@ def do_enforced_permissions(app_config, **kwargs):
             
             # Should probably accommodate duck typing somehow but this is simpler
             if isinstance(model_group_perms, dict):
-                add, change, delete = model_group_perms.values()
+                add, change, delete = model_group_perms['add'], model_group_perms['change'], model_group_perms['delete']
             elif isinstance(model_group_perms, list):
                 add, change, delete = model_group_perms
             elif isinstance(model_group_perms, bool):
@@ -129,22 +129,26 @@ def do_enforced_permissions(app_config, **kwargs):
                     try:
                         perm = Permission.objects.get(codename=codename, content_type=content_type)
                     except Permission.DoesNotExist:
-                        app_config = model._meta.app_config
-                        signals.post_migrate.send(
-                            sender=app_config,
-                            app_config=app_config,
-                        )
-                        if model._meta.proxy:
-                            # skip proxy model if permission is still missing after post_migrate signal
-                            if not Permission.objects.filter(
+                        # try to fallback to codename only query
+                        if Permission.objects.filter(codename=codename).count() == 1:
+                            perm = Permission.objects.get(codename=codename)
+                        else:
+                            app_config = model._meta.app_config
+                            signals.post_migrate.send(
+                                sender=app_config,
+                                app_config=app_config,
+                            )
+                            if model._meta.proxy:
+                                # skip proxy model if permission is still missing after post_migrate signal
+                                if not Permission.objects.filter(
+                                    codename=codename,
+                                    content_type=content_type,
+                                ).exists():
+                                    continue
+                            perm = Permission.objects.get(
                                 codename=codename,
                                 content_type=content_type,
-                            ).exists():
-                                continue
-                        perm = Permission.objects.get(
-                            codename=codename,
-                            content_type=content_type,
-                        )
+                            )
                     if should_has_perm:
                         print('Adding: permission {} for {}'.format(label, group))
                         group_obj.permissions.add(perm)
