@@ -19,6 +19,14 @@ class EnforcedPermissionsAppConfig(AppConfig):
         post_migrate.connect(do_enforced_permissions, sender=self)
 
 
+def report_errors(error_msg):
+    if settings.ENFORCED_PERMISSIONS.get('raise_on_errors', False):
+        report_errors(error_msg)
+    else:
+        print('ImproperlyConfigured: ')
+        print(error_msg)
+
+
 def do_enforced_permissions(app_config, **kwargs):
     from django.contrib.auth.models import Group, Permission
     from django.contrib.auth import get_permission_codename
@@ -54,14 +62,14 @@ def do_enforced_permissions(app_config, **kwargs):
             group_errors.append(group)
         
         if len(group_errors):
-            raise ImproperlyConfigured('The following groups do not exist: {}'.format(','.join(group_errors)))
+            report_errors('The following groups do not exist: {}'.format(','.join(group_errors)))
     
     def is_excluded(l):
         # TODO Allow wildcards
         return l in exclude
 
     if len(perms) != len(list(set(perms))):
-        raise ImproperlyConfigured("Duplicate entries in ENFORCED_PERMISSIONS")
+        report_errors("Duplicate entries in ENFORCED_PERMISSIONS")
 
     missing_apps = []
     all_app_labels = list(set([x.split('.')[0] for x in perms.keys()]))
@@ -71,7 +79,7 @@ def do_enforced_permissions(app_config, **kwargs):
         except (ImproperlyConfigured, LookupError):
             missing_apps.append(app_label)
     if missing_apps:
-        raise ImproperlyConfigured("ENFORCED_PERMISSIONS refers to non-existent app: {}".format(','.join(missing_apps)))
+        report_errors("ENFORCED_PERMISSIONS refers to non-existent app: {}".format(','.join(missing_apps)))
     
     all_models = [x for x in perms if not x.endswith('.*')]
     # TODO check for models that don't exist
@@ -161,4 +169,4 @@ def do_enforced_permissions(app_config, **kwargs):
                         group_obj.permissions.remove(perm)
 
     if errors:
-        raise ImproperlyConfigured('\n'.join(errors))
+        report_errors('\n'.join(errors))
